@@ -51,88 +51,27 @@ class ChatRequest(BaseModel):
 from agents import Agent, Runner # Import SDK components
 
 # Import agents from our chatbot source package
-from chatbot_src.registration import (
-    code_verification_agent,
-    registration_agent,
-    renew_registration_agent,
-    new_registration_agent,
-    RegistrationSummary # Import the model if needed for type checking later
-)
-# Import tools if needed directly (though agents should encapsulate them)
-# from chatbot_src.tools import validate_registration_code
+from chatbot_src.go import urmston_town_triage_agent # MODIFIED: Import the single agent
+# from chatbot_src.registration import (
+#     code_verification_agent,
+#     registration_agent,
+#     renew_registration_agent,
+#     new_registration_agent,
+#     RegistrationSummary # Import the model if needed for type checking later
+# ) # REMOVED old agent imports
 
-# Define Classification Rules (copied from go.py)
-query_classification_list = """ 
-{ 
-  "classification_policy": [
-    {
-      "classification": "registration",
-      "keywords": ["register", "signing on", "sign up", "join", "get involved", "membership"],
-      "description": "Query is about joining the club or becoming a member.",
-      "action_type": "handoff",
-      "action_target": "Code Verification Agent" 
-    },
-    {
-      "classification": "payments",
-      "keywords": ["membership fee", "subscription", "fee", "subs", "direct debit", "standing order", "payment issues", "setup payment", "amend payment", "cancel payment"],
-      "description": "Query is about anything relating to setting up, modifying, making or cancelling payments of any sort.",
-      "action_type": "handoff",
-      "action_target": "Payments Agent" 
-    },
-    {
-         "classification": "training_times",
-         "keywords": ["training", "schedule", "when", "where", "time", "practice"],
-         "description": "Query is about training sessions.",
-         "action_type": "tool_call",
-         "action_target": "get_training_schedule"
-     },
-    {
-      "classification": "other",
-      "keywords": [],
-      "description": "Any query not matching other classifications.",
-      "action_type": "respond",
-      "action_target": "Acknowledge the query and state that you will find the right person to help, but cannot answer directly."
-    }
-  ]
-}
-"""
+# Define Classification Rules (copied from go.py) - REMOVED
+# query_classification_list = ... (removed)
 
-# Define Placeholder Payments Agent 
-payments_agent = Agent(
-    name="Payments Agent", 
-    instructions="You handle payment queries related to Urmston Town Juniors FC." # Slightly more specific
-)
+# Define Placeholder Payments Agent - REMOVED
+# payments_agent = Agent(...) (removed)
 
-# Define Router Agent 
-router_agent = Agent(
-    name="Router Agent",
-    instructions=f"""
-Urmston Town Juniors Football Club is a grassroots club based in Urmston, Manchester, UK. 
-Your role is to act as a first point of contact chatbot.
-Your objective is to analyze the user's query and classify it according to the `classification_policy` JSON structure provided below. 
-Once classified, you MUST perform the specified action (`action_type` and `action_target`) and nothing else for that classification. 
-Adhere strictly to the policy. Do not deviate.
-
-Policy:
-```json
-{query_classification_list}
-```
-
-If the query is ambiguous and you cannot confidently classify it based on the policy, ask clarifying questions to help determine the correct classification BEFORE taking any action.
-""",
-    # Include ALL agents that can be handed off to OR that might be the 'last_agent'
-    handoffs=[code_verification_agent, registration_agent, payments_agent, renew_registration_agent, new_registration_agent],
-    # tools=[get_training_schedule] # Add if/when defined
-)
+# Define Router Agent - REMOVED
+# router_agent = Agent(...) (removed)
 
 # Agent Registry for easy lookup by name
 AGENT_REGISTRY: Dict[str, Agent] = {
-    router_agent.name: router_agent,
-    code_verification_agent.name: code_verification_agent,
-    registration_agent.name: registration_agent,
-    payments_agent.name: payments_agent,
-    renew_registration_agent.name: renew_registration_agent,
-    new_registration_agent.name: new_registration_agent,
+    urmston_town_triage_agent.name: urmston_town_triage_agent, # MODIFIED: Only the single agent
 }
 
 print("Agents imported and defined.")
@@ -251,12 +190,15 @@ async def chat_stream_endpoint(chat_request: ChatRequest): # Changed Request to 
     """Handles chat requests and streams back agent responses using SSE."""
     
     # --- Determine Agent to Run --- 
-    if chat_request.last_agent_name and chat_request.last_agent_name in AGENT_REGISTRY:
-        agent_to_run = AGENT_REGISTRY[chat_request.last_agent_name]
-        print(f"Continuing conversation with: {agent_to_run.name}")
-    else:
-        agent_to_run = router_agent # Default to router agent for new conversations
-        print(f"Starting new conversation with: {agent_to_run.name}")
+    # MODIFIED: Always use the single triage agent from go.py
+    agent_to_run = urmston_town_triage_agent
+    print(f"Using agent: {agent_to_run.name}")
+    # if chat_request.last_agent_name and chat_request.last_agent_name in AGENT_REGISTRY:
+    #     agent_to_run = AGENT_REGISTRY[chat_request.last_agent_name]
+    #     print(f"Continuing conversation with: {agent_to_run.name}")
+    # else:
+    #     agent_to_run = router_agent # Default to router agent for new conversations
+    #     print(f"Starting new conversation with: {agent_to_run.name}")
 
     # --- Prepare Agent Input --- 
     # Convert Pydantic models back to simple dicts for the agent input list
