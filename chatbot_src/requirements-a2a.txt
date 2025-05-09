@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.22
+pydantic>=2
+# python-a2a # Not needed for serving static agent.json
+# mcp-server # Not needed for serving static agent.json
+# openai-agents # Not needed for serving static agent.json
+# python-dotenv # Not needed for serving static agent.json
+# pyairtable # Not needed for serving static agent.json 

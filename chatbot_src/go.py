@@ -18,6 +18,7 @@ from agents import Agent, Runner # Removed InputGuardrail, GuardrailFunctionOutp
 
 # --- Import Tools ---
 from .tools import validate_registration_code # Keep this for the new agent
+from agents import function_tool # Import for the new internal tool
 
 # --- Load Environment Variables ---
 load_dotenv()
@@ -38,49 +39,61 @@ if not airtable_api_key:
 if not airtable_base_id:
     print("Warning: AIRTABLE_BASE_ID not found in .env. Code verification tool will fail.") # This warning comes from tools.py now
 
-# --- Define Club Policy Placeholder --- (No longer needed with the new simple instructions)
-# club_policy_placeholder = '''
-# [
-#   {
-#     "query_type": "Player Registration",
-#     "keywords": ["register", "sign up", "join", "membership"],
-#     "resolution_steps": "Ask for registration code. Use 'validate_registration_code' tool. If valid, guide through steps XYZ. If invalid, inform user.",
-#     "required_tools": ["validate_registration_code"]
-#   },
-#   {
-#     "query_type": "Training Information",
-#     "keywords": ["training", "practice", "schedule"],
-#     "resolution_steps": "Provide current training schedule based on age group (tool to be defined: 'get_training_schedule').",
-#     "required_tools": ["get_training_schedule"]
-#   },
-#   {
-#     "query_type": "Payment Queries",
-#     "keywords": ["payment", "fee", "subs"],
-#     "resolution_steps": "Explain payment process and direct to club treasurer for setup/issues (tool to be defined: 'get_treasurer_contact').",
-#     "required_tools": ["get_treasurer_contact"]
-#   },
-#   {
-#     "query_type": "General Inquiry",
-#     "keywords": [], 
-#     "resolution_steps": "Provide a polite general response and offer to find more specific help if needed.",
-#     "required_tools": []
-#   }
-# ]
-# '''
+# --- Fake DB for Team Availability (Placeholder) ---
+_FAKE_TEAM_DB = {
+    "U8 Lions": {"capacity": 12, "registered": 12, "gender": "Mixed", "age_group": "U8"},
+    "U10 Tigers": {"capacity": 14, "registered": 12, "gender": "Mixed", "age_group": "U10"},
+    "U12 Eagles": {"capacity": 16, "registered": 16, "gender": "Boys", "age_group": "U12"},
+    "U14 Phoenix": {"capacity": 18, "registered": 15, "gender": "Girls", "age_group": "U14"}
+}
 
-# --- Define the Single Triage Agent ---
-urmston_town_triage_agent = Agent(
-    name="Urmston Town Triage Agent",
+# --- Internal SDK Tool for Team Availability ---
+@function_tool
+async def sdk_get_team_availability(team_name: str) -> dict:
+    """Checks if a specific football team has player vacancies.
+
+    Args:
+        team_name: The full name of the team to check (e.g., 'U10 Tigers').
+
+    Returns:
+        A dictionary containing team availability details or an error if not found.
+    """
+    team_info = _FAKE_TEAM_DB.get(team_name)
+    if team_info:
+        spaces_left = team_info["capacity"] - team_info["registered"]
+        return {
+            "team_found": True,
+            "team_name": team_name,
+            "age_group": team_info["age_group"],
+            "gender": team_info["gender"],
+            "capacity": team_info["capacity"],
+            "registered": team_info["registered"],
+            "spaces_available": spaces_left > 0,
+            "spaces_left": spaces_left
+        }
+    else:
+        return {
+            "team_found": False,
+            "team_name": team_name,
+            "message": f"Team '{team_name}' not found in our records."
+        }
+
+# --- Define the Orchestrator Agent ---
+orchestrator_agent = Agent( # RENAMED
+    name="Urmston Town Orchestrator Agent", # RENAMED
     instructions=(
-        "You are the front-door triage agent for Urmston Town Juniors Football Club, "
+        "You are the orchestrator agent for Urmston Town Juniors Football Club, "
         "a local grassroots football club based in Manchester, England.\n\n"
-        "For the moment, please reply to all queries with the message "
+        "Your primary role is to understand user queries and use your available tools to answer them accurately. "
+        "When asked to check team availability, use the 'sdk_get_team_availability' tool. "
+        "Provide the full details from the tool back to the user in a clear, friendly way.\n\n"
+        "For any other queries for the moment, please reply with the message: "
         "'I AM URMSTON TOWN\'S CHATBOT AND I HAVE RECEIVED YOUR MESSAGE AND AM READY TO SERVE'."
     ),
-    tools=[validate_registration_code] # Tool will not be used with current instructions, but kept for future use
+    tools=[validate_registration_code, sdk_get_team_availability] # ADDED sdk_get_team_availability
 )
 
-print("Urmston Town Triage Agent defined.")
+print("Urmston Town Orchestrator Agent defined.") # UPDATED print message
 
 
 # --- Main Execution Logic (Simplified for Single Agent) ---
@@ -98,7 +111,7 @@ async def main():
         # Add user message to history
         conversation_history.append({"role": "user", "content": user_message_content})
         
-        agent_to_run = urmston_town_triage_agent # Always use the single agent
+        agent_to_run = orchestrator_agent # Always use the single agent (RENAMED)
         agent_input = conversation_history
         
         print(f"Agent ({agent_to_run.name}) thinking...")

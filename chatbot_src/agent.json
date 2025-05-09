@@ -1,0 +1,15 @@
+{
+  "id": "urn:urmstontown:agent:orchestrator",
+  "name": "Urmston Town Juniors Orchestrator Agent",
+  "version": "1.0-draft",
+  "base_url": "https://urmstontownjuniorsfc.co.uk",
+  "authentication": {
+    "type": "none"
+  },
+  "skills": [
+    {
+      "name": "check_team_spaces",
+      "description": "Check if a particular team has player vacancies available."
+    }
+  ]
+} 
