@@ -24,6 +24,10 @@ with AGENT_CARD_PATH.open() as f:
 
 app = FastAPI(title="Urmston Town Agent Card Service") # Simplified title
 
+@app.get("/")
+async def read_root():
+    return {"message": "Urmston Town A2A Service is running"}
+
 # Instantiate A2A server if library available - COMMENTED OUT FOR MINIMAL DEPLOY
 # if A2AServer is not None:
 #     try:

@@ -2,7 +2,7 @@
   "id": "urn:urmstontown:agent:orchestrator",
   "name": "Urmston Town Juniors Orchestrator Agent",
   "version": "1.0-draft",
-  "base_url": "https://urmstontownjuniorsfc.co.uk",
+  "base_url": "https://urmstontownjfc.co.uk",
   "authentication": {
     "type": "none"
   },
